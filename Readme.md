@@ -17,3 +17,5 @@ curl -X POST http://localhost:3000/register -H "Content-Type: application/json" 
 
 ## ตัวอย่างที่ 3 - Realtime
 เปิดจาก src แล้วใช้คู่กับ socket.js
+
+## ตัวอย่างที่ 4 - Publisher / Subscriber
