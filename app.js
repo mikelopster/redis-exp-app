@@ -2,6 +2,8 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const sqlite3 = require('sqlite3').verbose()
 const redis = require('redis')
+const session = require('express-session')
+const RedisStore = require('connect-redis').default
 
 const app = express()
 app.use(bodyParser.json())
@@ -19,6 +21,17 @@ redisClient.on('error', (err) => {
   await redisClient.connect()
 })()
 
+// การตั้งค่า session middleware
+app.use(
+  session({
+    store: new RedisStore({ client: redisClient }),
+    secret: 'your-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false }, // secure: true สำหรับ production ที่ใช้ https
+  })
+)
+
 // สร้างตารางสำหรับ authors และ books ถ้ายังไม่มี
 db.serialize(() => {
   db.run(
@@ -33,7 +46,12 @@ db.serialize(() => {
 app.post('/authors', async (req, res) => {
   const { name } = req.body
   try {
-    await db.run('INSERT INTO authors (name) VALUES (?)', [name])
+    await new Promise((resolve, reject) => {
+      db.run('INSERT INTO authors (name) VALUES (?)', [name], function (err) {
+        if (err) reject(err)
+        resolve(this.lastID)
+      })
+    })
     const lastID = await new Promise((resolve, reject) => {
       db.get('SELECT last_insert_rowid() as id', (err, row) => {
         if (err) reject(err)
@@ -82,7 +100,16 @@ app.put('/authors/:id', async (req, res) => {
   const { id } = req.params
   const { name } = req.body
   try {
-    await db.run('UPDATE authors SET name = ? WHERE id = ?', [name, id])
+    await new Promise((resolve, reject) => {
+      db.run(
+        'UPDATE authors SET name = ? WHERE id = ?',
+        [name, id],
+        function (err) {
+          if (err) reject(err)
+          resolve()
+        }
+      )
+    })
     res.json({ message: 'Author updated' })
   } catch (err) {
     res.status(400).json({ error: err.message })
@@ -93,7 +120,12 @@ app.put('/authors/:id', async (req, res) => {
 app.delete('/authors/:id', async (req, res) => {
   const { id } = req.params
   try {
-    await db.run('DELETE FROM authors WHERE id = ?', [id])
+    await new Promise((resolve, reject) => {
+      db.run('DELETE FROM authors WHERE id = ?', [id], function (err) {
+        if (err) reject(err)
+        resolve()
+      })
+    })
     res.json({ message: 'Author deleted' })
   } catch (err) {
     res.status(400).json({ error: err.message })
@@ -104,10 +136,16 @@ app.delete('/authors/:id', async (req, res) => {
 app.post('/books', async (req, res) => {
   const { title, author_id } = req.body
   try {
-    await db.run('INSERT INTO books (title, author_id) VALUES (?, ?)', [
-      title,
-      author_id,
-    ])
+    await new Promise((resolve, reject) => {
+      db.run(
+        'INSERT INTO books (title, author_id) VALUES (?, ?)',
+        [title, author_id],
+        function (err) {
+          if (err) reject(err)
+          resolve(this.lastID)
+        }
+      )
+    })
     const lastID = await new Promise((resolve, reject) => {
       db.get('SELECT last_insert_rowid() as id', (err, row) => {
         if (err) reject(err)
@@ -163,11 +201,16 @@ app.put('/books/:id', async (req, res) => {
   const { id } = req.params
   const { title, author_id } = req.body
   try {
-    await db.run('UPDATE books SET title = ?, author_id = ? WHERE id = ?', [
-      title,
-      author_id,
-      id,
-    ])
+    await new Promise((resolve, reject) => {
+      db.run(
+        'UPDATE books SET title = ?, author_id = ? WHERE id = ?',
+        [title, author_id, id],
+        function (err) {
+          if (err) reject(err)
+          resolve()
+        }
+      )
+    })
     await redisClient.del('books') // Clear the cache
     res.json({ message: 'Book updated' })
   } catch (err) {
@@ -179,11 +222,46 @@ app.put('/books/:id', async (req, res) => {
 app.delete('/books/:id', async (req, res) => {
   const { id } = req.params
   try {
-    await db.run('DELETE FROM books WHERE id = ?', [id])
+    await new Promise((resolve, reject) => {
+      db.run('DELETE FROM books WHERE id = ?', [id], function (err) {
+        if (err) reject(err)
+        resolve()
+      })
+    })
     await redisClient.del('books') // Clear the cache
     res.json({ message: 'Book deleted' })
   } catch (err) {
     res.status(400).json({ error: err.message })
+  }
+})
+
+// ตรวจสอบการ login
+app.post('/login', (req, res) => {
+  const { username } = req.body
+  if (username) {
+    req.session.username = username
+    res.json({ message: 'Logged in' })
+  } else {
+    res.status(400).json({ error: 'Username is required' })
+  }
+})
+
+// ตรวจสอบการ logout
+app.post('/logout', (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      return res.status(500).json({ error: 'Logout failed' })
+    }
+    res.json({ message: 'Logged out' })
+  })
+})
+
+// ตรวจสอบสถานะการ login
+app.get('/status', (req, res) => {
+  if (req.session.username) {
+    res.json({ loggedIn: true, username: req.session.username })
+  } else {
+    res.json({ loggedIn: false })
   }
 })
 
