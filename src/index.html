@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Real-time Chat</title>
+    <style>
+      ul {
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+      }
+      li {
+        padding: 8px;
+        margin-bottom: 10px;
+        background: #f4f4f4;
+      }
+      input {
+        padding: 10px;
+        width: 300px;
+      }
+      button {
+        padding: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <ul id="messages"></ul>
+    <form id="form" action="">
+      <input id="input" autocomplete="off" /><button>Send</button>
+    </form>
+    <!-- เรียกใช้ socket.io จาก CDN -->
+    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+    <script>
+      var socket = io('http://localhost:3000') // ชี้ไปที่พอร์ตของ Backend
+
+      document.getElementById('form').addEventListener('submit', function (e) {
+        e.preventDefault()
+        var input = document.getElementById('input')
+        socket.emit('chat message', input.value)
+        input.value = ''
+      })
+
+      socket.on('chat message', function (msg) {
+        var item = document.createElement('li')
+        item.textContent = `${msg.timestamp}: ${msg.user}: ${msg.text}`
+        document.getElementById('messages').appendChild(item)
+        window.scrollTo(0, document.body.scrollHeight)
+      })
+    </script>
+  </body>
+</html>

@@ -15,3 +15,5 @@ curl -X POST http://localhost:3000/logout
 ## ตัวอย่างที่ 2 - Register + Queue
 curl -X POST http://localhost:3000/register -H "Content-Type: application/json" -d '{"username": "user1", "email": "tanit.pani@gmail.com"}'
 
+## ตัวอย่างที่ 3 - Realtime
+เปิดจาก src แล้วใช้คู่กับ socket.js
