@@ -1,21 +1,24 @@
-## Command Example
+# Redis use case - guide
 
-curl -X POST http://localhost:3000/authors -H "Content-Type: application/json" -d '{"name": "J.K. Rowling"}'
+ตัวอย่างการ implement redis 4 use case
+1. Session (app.js)
+2. Register + Queue (queue.js)
+3. Realtime (socket.js)
+4. Publisher / Subscriber (publisher.js, subscriber.js)
 
-curl -X POST http://localhost:3000/books -H "Content-Type: application/json" -d '{"title": "New Book", "author_id": 1}'
+สามารถ start project ได้ด้วย command
 
-curl -X GET http://localhost:3000/books/1
+```shell
+npm install
+node <ชื่อไฟล์ที่ต้องการทดลอง>
+```
 
-## ตัวอย่างที่ 1 - Session
+สำหรับ redis ใน git นี้ทำการลงด้วย `docker-compose.yml` สามารถดำเนินการ run redis ด้วยคำสั่งของ docker-compose ได้เลย
 
-curl -X POST http://localhost:3000/login -H "Content-Type: application/json" -d '{"username": "user1"}'
-curl -X GET http://localhost:3000/status
-curl -X POST http://localhost:3000/logout 
+```shell
+docker-compose up -d --build
+```
 
-## ตัวอย่างที่ 2 - Register + Queue
-curl -X POST http://localhost:3000/register -H "Content-Type: application/json" -d '{"username": "user1", "email": "tanit.pani@gmail.com"}'
+โดย code ใน github นี้เป็นส่วนหนึ่งของ video นี้ สามารถดูเนื้อหาของ code นี้ฉบับเต็มที่ video ได้
 
-## ตัวอย่างที่ 3 - Realtime
-เปิดจาก src แล้วใช้คู่กับ socket.js
-
-## ตัวอย่างที่ 4 - Publisher / Subscriber
+[![redis-use-case](https://img.youtube.com/vi/hpy8rMuQsfQ/0.jpg)](https://youtu.be/hpy8rMuQsfQ)
